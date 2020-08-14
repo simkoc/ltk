@@ -597,7 +597,6 @@ toplevel             x
   `(let ((*buffer-for-atomic-output* t))
      ,@code
      ))
-     
 
 ;;; setup of wish
 ;;; put any tcl function definitions needed for running ltk here
@@ -605,36 +604,30 @@ toplevel             x
   (send-lazy
   ;; print string readable, escaping all " and \
   ;; proc esc {s} {puts "\"[regsub {"} [regsub {\\} $s {\\\\}] {\"}]\""}
-  ;(send-wish "proc esc {s} {puts \"\\\"[regsub -all {\"} [regsub -all {\\\\} $s {\\\\\\\\}] {\\\"}]\\\"\"} ")
-  ;(send-wish "proc escape {s} {return [regsub -all {\"} [regsub -all {\\\\} $s {\\\\\\\\}] {\\\"}]} ")
-  (send-wish "package require Tk")
-  (flush-wish)
-
-  #+:tk84
-  (send-wish "catch {package require Ttk}")
-  #-:tk84
-  (send-wish "if {[catch {package require Ttk} err]} {tk_messageBox -icon error -type ok -message \"$err\"}")
-
-
-  (send-wish "proc debug { msg } {
-       global server
-       puts $server \"(:debug \\\"[escape $msg]\\\")\"
-       flush $server
-    } ")
-
-  (send-wish "proc escape {s} {regsub -all {\\\\} $s {\\\\\\\\} s1;regsub -all {\"} $s1 {\\\"} s2;return $s2}")
+  ;;(send-wish "proc esc {s} {puts \"\\\"[regsub -all {\"} [regsub -all {\\\\} $s {\\\\\\\\}] {\\\"}]\\\"\"} ")
+  ;;(send-wish "proc escape {s} {return [regsub -all {\"} [regsub -all {\\\\} $s {\\\\\\\\}] {\\\"}]} ")
+   (send-wish "package require Tk")
+   (send-wish "set server stdout")
+   (flush-wish)
+   #+:tk84
+   (send-wish "catch {package require Ttk}")
+   #-:tk84
+   (send-wish "if {[catch {package require Ttk} err]} {tk_messageBox -icon error -type ok -message \"$err\"}")
+   (send-wish "proc debug { msg } {
+                 global server
+                 puts $server \"(:debug \\\"[escape $msg]\\\")\"
+                 flush $server
+               }")
+   (send-wish "proc escape {s} {regsub -all {\\\\} $s {\\\\\\\\} s1;regsub -all {\"} $s1 {\\\"} s2;return $s2}")
   ;;; proc senddata {s} {puts "(data \"[regsub {"} [regsub {\\} $s {\\\\}] {\"}]\")"}
   (send-wish "proc senddata {s} {global server; puts $server \"(:data [escape $s])\";flush $server}")
-
   (send-wish "proc senddatastring {s} {
        global server
-       
        puts $server \"(:data \\\"[escape $s]\\\")\"
        flush $server
     } ")
-
   (send-wish "proc senddatastrings {strings} {
-                 global server 
+                 global server
                  puts $server \"(:data (\"
  	         foreach s $strings {
                      puts $server \"\\\"[escape $s]\\\"\"
@@ -643,9 +636,8 @@ toplevel             x
   (send-wish "proc to_keyword  {s} {
                 if {[string index $s 0] == \"-\"} {
                    return \":[string range $s 1 [string length $s]]\" } {return \":$s\"}}")
-  
   (send-wish "proc sendpropertylist {l} {
-               global server; 
+               global server;
                set pos 0
                set ll [llength $l]
                puts $server \"(:data (\"
@@ -656,7 +648,6 @@ toplevel             x
                  set pos [expr $pos + 1]
                 }
                puts $server \"))\"
-                  
 }")
 
   (send-wish "proc searchall {widget pattern} {
@@ -669,7 +660,6 @@ toplevel             x
                      set result [$widget search $pattern $result+${l}chars]
                  }
              }")
-  
   (send-wish "proc searchnext {widget pattern} {
                  set l [string length $pattern]
                  set result [$widget search $pattern insert]
@@ -680,7 +670,6 @@ toplevel             x
                      $widget see insert
                  }
              }")
- 
   (send-wish "proc resetScroll {c} {
       $c configure -scrollregion [$c bbox all]
 }
@@ -690,7 +679,6 @@ proc moveToStart {sb} {
    $sb set 0 [expr [lindex $range 1] - [lindex $range 0]]
  }
 ")
-
   ;;; proc sendevent {s} {puts "(event \"[regsub {"} [regsub {\\} $s {\\\\}] {\"}]\")"}
   ;(send-wish "proc sendevent {s x y keycode char width height root_x root_y} {puts \"(:event \\\"$s\\\" $x $y $keycode $char $width $height $root_x $root_y)\"} ")
   (send-wish "proc sendevent {s x y keycode char width height root_x root_y mouse_button} {global server; puts $server \"(:event \\\"$s\\\" $x $y $keycode $char $width $height $root_x $root_y $mouse_button)\"; flush $server} ")
@@ -707,8 +695,7 @@ proc moveToStart {sb} {
   ;(send-wish "global serverlist;set serverlist {{foo 10} {bar 20} {baz 40}}")
   ;(send-wish "global host; set host bar")
   ;(send-wish "global hping; set hping 42")
-  
-  (dolist (fun *init-wish-hook*)	; run init hook funktions 
+  (dolist (fun *init-wish-hook*)	; run init hook funktions
     (funcall fun))))
 
 
@@ -870,13 +857,13 @@ fconfigure stdout -encoding utf-8
           (cond
             ((wish-remotep *wish*)
              (let ((content (format nil "~{~a~%~}" buffer)))
-               (format stream "~d ~a~%"(length content) content)
+                                        ;(format stream "~d ~a~%"(length content) content)
+               (format stream "~a~%" content)
                (dbg "~d ~a~%" (length content) content)))
             (*max-line-length*
              (when (or *debug-buffers*
                        *debug-tk*)
                (format t "buffer size ~a~%" len) (finish-output))
-             
              (dolist (string buffer)
                (loop while (> (length string) *max-line-length*)
                      do
@@ -897,7 +884,6 @@ fconfigure stdout -encoding utf-8
                (dbg "bt \"~A\"~%" (tkescape2 string)))
              (format stream "process_buffer~%")
              (dbg "process_buffer~%")))
-          
           (finish-output stream)
 
           #+nil(loop for string in buffer
