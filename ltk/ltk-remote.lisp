@@ -30,15 +30,16 @@
 
 (in-package ltk-remote)
 
-(defmacro with-remote-ltk (port bindings form &rest cleanups)
+(defmacro with-remote-ltk (ip port bindings form &rest cleanups)
   (let ((vars (mapcar (lambda (b) (if (consp b) (car b) b)) bindings))
         (vals (mapcar (lambda (b) (when (consp b) (cadr b))) bindings)))
     `(invoke-remote-ltk ,port 
                         ',vars
                         (list ,@vals)
                         (lambda () ,form) 
-                        (lambda () ,@cleanups))))
-
+                        (lambda () ,@cleanups)
+                        ,ip)))
+#|
 ;;; IMPLEMENTATIONS OF INVOKE-REMOTE-LTK
 
 ;;; cmu version
@@ -168,7 +169,7 @@
 #+:scl
 (defun stop-server ()
   (setf *stop-remote* t))
-
+|#
 
 ;;; sbcl version
 
@@ -178,9 +179,9 @@
 
 
 #+:sbcl
-(defun make-socket-server (port)
+(defun make-socket-server (port &optional (ip #(0 0 0 0)))
   (let ((socket (make-instance 'inet-socket :type :stream :protocol :tcp)))
-    (socket-bind socket #(0 0 0 0) port)
+    (socket-bind socket ip port)
     (socket-listen socket 100)
     socket))
 
@@ -191,11 +192,11 @@
     stream)) ;; do we need to return s as well ?
 
 #+:sbcl
-(defun invoke-remote-ltk (port vars vals form cleanup)
+(defun invoke-remote-ltk (port vars vals form cleanup &optional (ip #(0 0 0 0)))
   (make-thread
-   (lambda () 
-     (setf *stop-remote* nil)      
-     (let ((socket (make-socket-server port)))
+   (lambda ()
+     (setf *stop-remote* nil)
+     (let ((socket (make-socket-server port ip)))
        (loop
         (when *stop-remote*
           (socket-close socket)
@@ -212,7 +213,7 @@
                  (funcall cleanup)))))))
        (socket-close socket)))))
 
-
+#|
 ;; lispworks version
 
 #+:lispworks
@@ -300,12 +301,12 @@
                  nil)))))))
 
 ;;;;;;;;;;;;;;;;; END OF IMPLEMENTATION DEPENDANCIES
-
+|#
 
 ;;; simple test function
 
 (defun lrtest (port)
-  (with-remote-ltk
+  (with-remote-ltk "127.0.0.1"
    port ()
    (let* ((txt (make-text nil :width 40 :height 10))
  	  (f (make-instance 'frame ))
@@ -328,7 +329,7 @@
 
 
 (defun rlb-test2 ()
-  (with-remote-ltk 19790 ()
+  (with-remote-ltk "127.0.0.1" 19790 ()
    (let* ((last nil)
 	  (l (make-instance 'listbox))
 	  (wf (make-instance 'frame))
