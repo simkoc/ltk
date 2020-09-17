@@ -22,7 +22,7 @@
   (:use :common-lisp :ltk
         #+(or :cmu :scl) :ext
        #+:sbcl :sb-ext
-       #+:sbcl :sb-thread
+      ;; #+:sbcl :sb-thread
        #+:sbcl :sb-bsd-sockets)
   (:export
    #:stop-server
@@ -193,7 +193,7 @@
 
 #+:sbcl
 (defun invoke-remote-ltk (port vars vals form cleanup &optional (ip #(0 0 0 0)))
-  (make-thread
+  (sb-thread:make-thread
    (lambda ()
      (setf *stop-remote* nil)
      (let ((socket (make-socket-server port ip)))
@@ -203,7 +203,7 @@
           (return))
         (let* ((s (socket-accept socket))
                (stream (socket-make-stream s :input t :output t)))
-          (make-thread
+          (sb-thread:make-thread
            (lambda ()
              (progv vars vals
                (ltk::call-with-ltk form
